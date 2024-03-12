@@ -1,3 +1,5 @@
+mod vec3;
+
 use sdl2::{event::Event, pixels::Color, keyboard::Keycode};
 
 fn main() -> Result<(), String> {
