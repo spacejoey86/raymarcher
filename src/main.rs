@@ -1,6 +1,8 @@
+mod sdf3d;
 mod vec3;
 
 use sdl2::{event::Event, pixels::Color, keyboard::Keycode};
+
 
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
