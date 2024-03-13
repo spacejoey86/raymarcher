@@ -1,16 +1,12 @@
-mod cuboid;
 mod sdf3d;
-mod sphere;
 mod vec3;
-mod rotate;
 
-use sphere::Sphere;
-use cuboid::Cuboid;
-use rotate::RotatedSdf;
+use std::{ops::Div, time::{Duration, Instant}};
+
 use sdf3d::Sdf3d;
 use vec3::Vec3;
 
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Point};
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Point, rect::Rect};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 const CAMERA_SIZE: f64 = 20.0;
@@ -18,6 +14,9 @@ const CAMERA_SIZE: f64 = 20.0;
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
+    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+
+    let font = ttf_context.load_font("/usr/share/fonts/liberation/LiberationMono-Regular.ttf", 128)?;
 
     let window = video_subsystem
         .window("Ray marcher? I hardly know her!", 800, 600)
@@ -27,15 +26,19 @@ fn main() -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
+    let texture_creator = canvas.texture_creator();
 
     canvas.set_draw_color(Color::RGB(100, 149, 237));
     canvas.clear();
     canvas.present();
 
     let mut event_pump = sdl_context.event_pump()?;
-    let my_sphere = Sphere::new(2.0, Color::GREEN);
-    let my_cube = Cuboid::new(Vec3::new(1.0, 2.0, 3.0), Color::RED);
-    let coloured_cube = Cuboid::coloured_cube(Vec3::splat(2.0), [Color::BLUE, Color::BLUE, Color::RED, Color::RED, Color::YELLOW, Color::YELLOW]);
+    let my_sphere = Sdf3d::Sphere { radius: 2.0, colour: Color::GREEN };
+    let my_cube = Sdf3d::Cuboid { half_size: Vec3::new(1.0, 2.0, 3.0), colours: [Color::RED; 6] };
+    let coloured_cube = Sdf3d::Cuboid{half_size: Vec3::splat(2.0), colours: [Color::BLUE, Color::BLUE, Color::RED, Color::RED, Color::YELLOW, Color::YELLOW]};
+    let inner_sdf = Box::new(coloured_cube);
+
+    let mut frame_start_time = Instant::now();
 
     let mut t = 0;
     'running: loop {
@@ -52,7 +55,7 @@ fn main() -> Result<(), String> {
 
         let size = canvas.output_size()?;
         let ratio = size.1 as f64 / size.0 as f64;
-        let sdf = RotatedSdf::new(t as f64 / 10.0, t as f64 * 0.04, 0.0, &coloured_cube);
+        let sdf = Sdf3d::RotatedSdf{pitch: t as f64 / 10.0, yaw: t as f64 * 0.04, roll: 0.0, inner: inner_sdf.clone()};
         let points: Vec<(i32, i32, Color)> = (0..(size.0 as i32 * size.1 as i32)).into_par_iter().map(|n| -> (i32, i32, Color) {
             let x = n % size.0 as i32;
             let y = n / size.0 as i32;
@@ -64,13 +67,13 @@ fn main() -> Result<(), String> {
             );
             let ray_dir = Vec3::new(0.0, 0.0, 1.0);
 
-            if let Some((colour, collision_point)) = <dyn Sdf3d>::sphere_trace(
+            if let Some((colour, collision_point)) = Sdf3d::sphere_trace(
                 &sdf,
                 pos,
                 ray_dir,
                 0.01,
             ) {
-                let normal = <dyn Sdf3d>::estimate_normal(&sdf, collision_point, 0.1);
+                let normal = Sdf3d::estimate_normal(&sdf, collision_point, 0.1);
                 return (x, y, lighting(colour, ray_dir, normal));
                 // canvas.set_draw_color();
             } else {
@@ -82,6 +85,19 @@ fn main() -> Result<(), String> {
             canvas.set_draw_color(colour);
             canvas.draw_point(Point::new(x, y))?;
         }
+
+        let current_time = Instant::now();
+        let frame_rate = 1.0 / (current_time - frame_start_time).as_secs_f64();
+
+        let surface = font
+            .render(&format!("{:.1}", frame_rate))
+            .blended(Color::BLACK)
+            .map_err(|e| e.to_string())?;
+        let texture = texture_creator
+            .create_texture_from_surface(surface)
+            .map_err(|e| e.to_string())?;
+        canvas.copy(&texture, None, Rect::new(0, 0, 50, 50))?;
+        frame_start_time = current_time;
 
         canvas.present();
         t = t + 1;
