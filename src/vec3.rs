@@ -36,6 +36,10 @@ impl Vec3 {
     pub fn normalise(&self) -> Vec3 {
         return *self / self.length();
     }
+
+    pub fn dot(&self, rhs: &Vec3) -> f64 {
+        return self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+    }
 }
 
 impl std::ops::Sub for Vec3 {
@@ -73,6 +77,14 @@ impl std::ops::Add for Vec3 {
 
     fn add(self, rhs: Self) -> Self::Output {
         return Vec3::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z);
+    }
+}
+
+impl std::ops::Neg for Vec3 {
+    type Output = Vec3;
+
+    fn neg(self) -> Self::Output {
+        return Vec3::new(-self.x, -self.y, -self.z);
     }
 }
 

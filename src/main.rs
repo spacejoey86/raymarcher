@@ -4,6 +4,8 @@ mod sdf3d;
 mod sphere;
 mod vec3;
 
+use std::cmp::max;
+
 use sdf3d::Sdf3d;
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Point};
 use sphere::Sphere;
@@ -44,7 +46,7 @@ fn main() -> Result<(), String> {
         }
 
         let size = canvas.output_size()?;
-        let ratio = (size.1 as f64 / size.0 as f64);
+        let ratio = size.1 as f64 / size.0 as f64;
         for x in 0..size.0 as i32 {
             for y in 0..size.1 as i32 {
                 let pos = Vec3::new(
@@ -52,13 +54,20 @@ fn main() -> Result<(), String> {
                     y as f64 / size.1 as f64 * CAMERA_SIZE * ratio - (CAMERA_SIZE * ratio * 0.5),
                     -50.0,
                 );
-                // println!("({}, {}) is pos {}", x, y, pos);
-                canvas.set_draw_color(<dyn Sdf3d>::sphere_trace(
+                let ray_dir = Vec3::new(0.0, 0.0, 1.0);
+
+                if let Some((colour, collision_point)) = <dyn Sdf3d>::sphere_trace(
                     &sdf,
                     pos,
-                    Vec3::new(0.0, 0.0, 1.0),
+                    ray_dir,
                     0.01,
-                ));
+                ) {
+                    let normal = <dyn Sdf3d>::estimate_normal(&sdf, collision_point, 0.001);
+                    canvas.set_draw_color(lighting(colour, ray_dir, normal));
+                } else {
+                    canvas.set_draw_color(sdl2::pixels::Color::RGB(100, 149, 237))
+                }
+
 
                 canvas.draw_point(Point::new(x, y))?
             }
@@ -67,4 +76,30 @@ fn main() -> Result<(), String> {
     }
 
     return Ok(());
+}
+
+fn lighting(object_colour: Color, ray_direction: Vec3, normal: Vec3) -> Color {
+    let light_colour = Color::WHITE;
+    let ambient = multiply_colour_float(multiply_colours(object_colour, light_colour), 0.5);
+    let diffuse = multiply_colour_float(multiply_colours(object_colour, light_colour), normal.dot(&(-ray_direction)));
+
+    return add_colour(ambient, diffuse);
+}
+
+fn multiply_colours(lhs: Color, rhs: Color) -> Color {
+    return Color::RGB((lhs.r as f64 * rhs.r as f64 / u8::MAX as f64) as u8,
+        (lhs.g as f64 * rhs.g as f64 / u8::MAX as f64) as u8,
+        (lhs.b as f64 * rhs.b as f64 / u8::MAX as f64) as u8);
+}
+
+fn multiply_colour_float(lhs: Color, rhs: f64) -> Color {
+    return Color::RGB((lhs.r as f64 * rhs) as u8,
+        (lhs.g as f64 * rhs) as u8,
+        (lhs.b as f64 * rhs) as u8);
+}
+
+fn add_colour(lhs: Color, rhs: Color) -> Color {
+    return Color::RGB(((lhs.r as u16 + rhs.r as u16) / 2) as u8,
+    ((lhs.g as u16 + rhs.g as u16) / 2) as u8,
+    ((lhs.b as u16 + rhs.b as u16) / 2) as u8);
 }

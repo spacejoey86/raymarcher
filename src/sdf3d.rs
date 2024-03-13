@@ -7,18 +7,18 @@ pub trait Sdf3d {
 
 impl dyn Sdf3d {
     // direction should be a unit vector
-    pub fn sphere_trace(sdf: &impl Sdf3d, start_point: Vec3, direction: Vec3, collision_distance: f64) -> sdl2::pixels::Color {
+    pub fn sphere_trace(sdf: &impl Sdf3d, start_point: Vec3, direction: Vec3, collision_distance: f64) -> Option<(sdl2::pixels::Color, Vec3)> {
         let mut current_point = start_point;
 
         for _ in 0..=16 {
             let step = sdf.get_distance(&current_point);
             if step < collision_distance {
-                return sdf.get_colour(current_point);
+                return Some((sdf.get_colour(current_point), current_point));
             }
             current_point = current_point + direction * step;
         }
 
-        return sdl2::pixels::Color::RGB(100, 149, 237);
+        return None;
     }
 
     // tetrahedron technique found at https://iquilezles.org/articles/normalsSDF/
