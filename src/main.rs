@@ -62,7 +62,7 @@ fn main() -> Result<(), String> {
                     ray_dir,
                     0.01,
                 ) {
-                    let normal = <dyn Sdf3d>::estimate_normal(&sdf, collision_point, 0.001);
+                    let normal = <dyn Sdf3d>::estimate_normal(&sdf, collision_point, 1.0);
                     canvas.set_draw_color(lighting(colour, ray_dir, normal));
                 } else {
                     canvas.set_draw_color(sdl2::pixels::Color::RGB(100, 149, 237))
@@ -80,7 +80,7 @@ fn main() -> Result<(), String> {
 
 fn lighting(object_colour: Color, ray_direction: Vec3, normal: Vec3) -> Color {
     let light_colour = Color::WHITE;
-    let ambient = multiply_colour_float(multiply_colours(object_colour, light_colour), 0.5);
+    let ambient = multiply_colour_float(multiply_colours(object_colour, light_colour), 1.0);
     let diffuse = multiply_colour_float(multiply_colours(object_colour, light_colour), normal.dot(&(-ray_direction)));
 
     return add_colour(ambient, diffuse);
