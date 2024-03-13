@@ -5,14 +5,21 @@ use std::cmp::{min, max};
 
 pub struct Cuboid {
     half_size: Vec3,
-    colour: sdl2::pixels::Color,
+    colours: [sdl2::pixels::Color; 6],
 }
 
 impl Cuboid {
     pub fn new(half_size: Vec3, colour: sdl2::pixels::Color) -> Cuboid {
         return Cuboid {
             half_size: half_size,
-            colour: colour,
+            colours: [colour; 6],
+        }
+    }
+
+    pub fn coloured_cube(half_size: Vec3, colours: [sdl2::pixels::Color; 6]) -> Cuboid {
+        return Cuboid {
+            half_size: half_size,
+            colours: colours,
         }
     }
 }
@@ -23,8 +30,23 @@ impl Sdf3d for Cuboid {
         return transformed_coord.clamp_lower(0.0).length() + transformed_coord.max_component().min(0.0);
     }
 
-    fn get_colour(&self, intersectionPoint: Vec3) -> sdl2::pixels::Color {
-        return self.colour;
+    fn get_colour(&self, intersection_point: Vec3) -> sdl2::pixels::Color {
+        if intersection_point.x >= self.half_size.x {
+            return self.colours[0];
+        } else if intersection_point.x <= -self.half_size.x {
+            return self.colours[1];
+        } else if intersection_point.y >= self.half_size.y {
+            return self.colours[2];
+        } else if intersection_point.y <= -self.half_size.y {
+            return self.colours[3];
+        } else if intersection_point.z >= self.half_size.z {
+            return self.colours[4];
+        } else if intersection_point.z <= -self.half_size.z {
+            return self.colours[5];
+        } else {
+            // not on a side?
+            return sdl2::pixels::Color::RGB(255, 0, 220);
+        }
     }
 }
 

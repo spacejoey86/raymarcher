@@ -1,4 +1,4 @@
-use crate::{direction::Direction, vec3::Vec3};
+use crate::vec3::Vec3;
 
 pub trait Sdf3d {
     fn get_distance(&self, pos: &Vec3) -> f64;
@@ -9,9 +9,17 @@ impl dyn Sdf3d {
     // direction should be a unit vector
     pub fn sphere_trace(sdf: &impl Sdf3d, start_point: Vec3, direction: Vec3, collision_distance: f64) -> Option<(sdl2::pixels::Color, Vec3)> {
         let mut current_point = start_point;
+        let mut last_step = sdf.get_distance(&current_point);
+        let mut earlier_step = sdf.get_distance(&current_point);
 
-        for _ in 0..=16 {
+        for _ in 0..=500 {
             let step = sdf.get_distance(&current_point);
+            if step > last_step + 1.0 && last_step > earlier_step + 1.0 {
+                return None;
+            }
+            earlier_step = last_step;
+            last_step = step;
+
             if step < collision_distance {
                 return Some((sdf.get_colour(current_point), current_point));
             }
@@ -23,15 +31,15 @@ impl dyn Sdf3d {
 
     // tetrahedron technique found at https://iquilezles.org/articles/normalsSDF/
     pub fn estimate_normal(sdf: &impl Sdf3d, point: Vec3, offset_size: f64) -> Vec3 {
-        let P0: Vec3 = Vec3::new(1.0, -1.0, -1.0);
-        let P1: Vec3 = Vec3::new(-1.0, -1.0, 1.0);
-        let P2: Vec3 = Vec3::new(-1.0, 1.0, -1.0);
-        let P3: Vec3 = Vec3::new(1.0, 1.0, -1.0);
+        let p0: Vec3 = Vec3::new(1.0, -1.0, -1.0);
+        let p1: Vec3 = Vec3::new(-1.0, -1.0, 1.0);
+        let p2: Vec3 = Vec3::new(-1.0, 1.0, -1.0);
+        let p3: Vec3 = Vec3::new(1.0, 1.0, -1.0);
 
-        return (P0 * sdf.get_distance(&(point + P0 * offset_size))
-            + P1 * sdf.get_distance(&(point + P1 * offset_size))
-            + P2 * sdf.get_distance(&(point + P2 * offset_size))
-            + P3 * sdf.get_distance(&(point + P3 * offset_size)))
+        return (p0 * sdf.get_distance(&(point + p0 * offset_size))
+            + p1 * sdf.get_distance(&(point + p1 * offset_size))
+            + p2 * sdf.get_distance(&(point + p2 * offset_size))
+            + p3 * sdf.get_distance(&(point + p3 * offset_size)))
             .normalise();
     }
 }

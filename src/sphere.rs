@@ -20,7 +20,7 @@ impl Sdf3d for Sphere {
         return pos.length() - self.radius;
     }
 
-    fn get_colour(&self, intersectionPoint: Vec3) -> sdl2::pixels::Color {
+    fn get_colour(&self, _intersection_point: Vec3) -> sdl2::pixels::Color {
         return self.colour;
     }
 }

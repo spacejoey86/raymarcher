@@ -2,9 +2,9 @@ use std::cmp::max;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Vec3 {
-    x: f64,
-    y: f64,
-    z: f64,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
 impl Vec3 {
@@ -39,6 +39,38 @@ impl Vec3 {
 
     pub fn dot(&self, rhs: &Vec3) -> f64 {
         return self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
+    }
+
+    pub fn rotate(&self, pitch: f64, yaw: f64, roll: f64) -> Vec3 {
+        let cosa = yaw.cos();
+        let sina = yaw.sin();
+
+        let cosb = pitch.cos();
+        let sinb = pitch.sin();
+
+        let cosc = roll.cos();
+        let sinc = roll.sin();
+
+        let axx = cosa*cosb;
+        let axy = cosa*sinb*sinc - sina*cosc;
+        let axz = cosa*sinb*cosc + sina*sinc;
+
+        let ayx = sina*cosb;
+        let ayy = sina*sinb*sinc + cosa*cosc;
+        let ayz = sina*sinb*cosc - cosa*sinc;
+
+        let azx = -sinb;
+        let azy = cosb*sinc;
+        let azz = cosb*cosc;
+
+        let px = self.x;
+        let py = self.y;
+        let pz = self.z;
+
+
+        return Vec3::new(axx*px + axy*py + axz*pz,
+            ayx*px + ayy*py + ayz*pz,
+            azx*px + azy*py + azz*pz);
     }
 }
 

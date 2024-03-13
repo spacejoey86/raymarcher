@@ -1,14 +1,14 @@
 mod cuboid;
-mod direction;
 mod sdf3d;
 mod sphere;
 mod vec3;
+mod rotate;
 
-use std::cmp::max;
-
+use sphere::Sphere;
+use cuboid::Cuboid;
+use rotate::RotatedSdf;
 use sdf3d::Sdf3d;
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Point};
-use sphere::Sphere;
 use vec3::Vec3;
 
 const CAMERA_SIZE: f64 = 20.0;
@@ -31,8 +31,11 @@ fn main() -> Result<(), String> {
     canvas.present();
 
     let mut event_pump = sdl_context.event_pump()?;
-    let sdf = Sphere::new(2.0, Color::GREEN);
-
+    let my_sphere = Sphere::new(2.0, Color::GREEN);
+    let my_cube = Cuboid::new(Vec3::new(1.0, 2.0, 3.0), Color::RED);
+    let coloured_cube = Cuboid::coloured_cube(Vec3::splat(2.0), [Color::BLUE, Color::BLUE, Color::RED, Color::RED, Color::YELLOW, Color::YELLOW]);
+    
+    let mut t = 0;
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -44,9 +47,10 @@ fn main() -> Result<(), String> {
                 _ => {}
             }
         }
-
+        
         let size = canvas.output_size()?;
         let ratio = size.1 as f64 / size.0 as f64;
+        let sdf = RotatedSdf::new(t as f64 / 10.0, t as f64 * 0.04, 0.0, &my_cube);
         for x in 0..size.0 as i32 {
             for y in 0..size.1 as i32 {
                 let pos = Vec3::new(
@@ -62,7 +66,7 @@ fn main() -> Result<(), String> {
                     ray_dir,
                     0.01,
                 ) {
-                    let normal = <dyn Sdf3d>::estimate_normal(&sdf, collision_point, 1.0);
+                    let normal = <dyn Sdf3d>::estimate_normal(&sdf, collision_point, 0.1);
                     canvas.set_draw_color(lighting(colour, ray_dir, normal));
                 } else {
                     canvas.set_draw_color(sdl2::pixels::Color::RGB(100, 149, 237))
@@ -73,6 +77,7 @@ fn main() -> Result<(), String> {
             }
         }
         canvas.present();
+        t = (t + 1);
     }
 
     return Ok(());
