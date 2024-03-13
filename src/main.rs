@@ -8,8 +8,10 @@ use sphere::Sphere;
 use cuboid::Cuboid;
 use rotate::RotatedSdf;
 use sdf3d::Sdf3d;
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Point};
 use vec3::Vec3;
+
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Point};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 const CAMERA_SIZE: f64 = 20.0;
 
@@ -34,7 +36,7 @@ fn main() -> Result<(), String> {
     let my_sphere = Sphere::new(2.0, Color::GREEN);
     let my_cube = Cuboid::new(Vec3::new(1.0, 2.0, 3.0), Color::RED);
     let coloured_cube = Cuboid::coloured_cube(Vec3::splat(2.0), [Color::BLUE, Color::BLUE, Color::RED, Color::RED, Color::YELLOW, Color::YELLOW]);
-    
+
     let mut t = 0;
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -47,37 +49,42 @@ fn main() -> Result<(), String> {
                 _ => {}
             }
         }
-        
+
         let size = canvas.output_size()?;
         let ratio = size.1 as f64 / size.0 as f64;
-        let sdf = RotatedSdf::new(t as f64 / 10.0, t as f64 * 0.04, 0.0, &my_cube);
-        for x in 0..size.0 as i32 {
-            for y in 0..size.1 as i32 {
-                let pos = Vec3::new(
-                    x as f64 / size.0 as f64 * CAMERA_SIZE - (CAMERA_SIZE / 2.0),
-                    y as f64 / size.1 as f64 * CAMERA_SIZE * ratio - (CAMERA_SIZE * ratio * 0.5),
-                    -50.0,
-                );
-                let ray_dir = Vec3::new(0.0, 0.0, 1.0);
+        let sdf = RotatedSdf::new(t as f64 / 10.0, t as f64 * 0.04, 0.0, &coloured_cube);
+        let points: Vec<(i32, i32, Color)> = (0..(size.0 as i32 * size.1 as i32)).into_par_iter().map(|n| -> (i32, i32, Color) {
+            let x = n % size.0 as i32;
+            let y = n / size.0 as i32;
 
-                if let Some((colour, collision_point)) = <dyn Sdf3d>::sphere_trace(
-                    &sdf,
-                    pos,
-                    ray_dir,
-                    0.01,
-                ) {
-                    let normal = <dyn Sdf3d>::estimate_normal(&sdf, collision_point, 0.1);
-                    canvas.set_draw_color(lighting(colour, ray_dir, normal));
-                } else {
-                    canvas.set_draw_color(sdl2::pixels::Color::RGB(100, 149, 237))
-                }
+            let pos = Vec3::new(
+                x as f64 / size.0 as f64 * CAMERA_SIZE - (CAMERA_SIZE / 2.0),
+                y as f64 / size.1 as f64 * CAMERA_SIZE * ratio - (CAMERA_SIZE * ratio * 0.5),
+                -50.0,
+            );
+            let ray_dir = Vec3::new(0.0, 0.0, 1.0);
 
-
-                canvas.draw_point(Point::new(x, y))?
+            if let Some((colour, collision_point)) = <dyn Sdf3d>::sphere_trace(
+                &sdf,
+                pos,
+                ray_dir,
+                0.01,
+            ) {
+                let normal = <dyn Sdf3d>::estimate_normal(&sdf, collision_point, 0.1);
+                return (x, y, lighting(colour, ray_dir, normal));
+                // canvas.set_draw_color();
+            } else {
+                return (x, y, sdl2::pixels::Color::RGB(100, 149, 237))
             }
+        }).collect();
+
+        for (x, y, colour) in points {
+            canvas.set_draw_color(colour);
+            canvas.draw_point(Point::new(x, y))?;
         }
+
         canvas.present();
-        t = (t + 1);
+        t = t + 1;
     }
 
     return Ok(());

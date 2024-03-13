@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Vec3 {
     pub x: f64,

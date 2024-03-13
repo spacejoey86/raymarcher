@@ -1,6 +1,6 @@
 use crate::vec3::Vec3;
 
-pub trait Sdf3d {
+pub trait Sdf3d: Sync {
     fn get_distance(&self, pos: &Vec3) -> f64;
     fn get_colour(&self, intersection_point: Vec3) -> sdl2::pixels::Color;
 }
@@ -12,7 +12,7 @@ impl dyn Sdf3d {
         let mut last_step = sdf.get_distance(&current_point);
         let mut earlier_step = sdf.get_distance(&current_point);
 
-        for _ in 0..=500 {
+        for _ in 0..=128 {
             let step = sdf.get_distance(&current_point);
             if step > last_step + 1.0 && last_step > earlier_step + 1.0 {
                 return None;

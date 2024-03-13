@@ -1,4 +1,4 @@
-use crate::{sdf3d::Sdf3d, vec3::Vec3};
+use crate::sdf3d::Sdf3d;
 
 pub struct RotatedSdf<'a> {
     pitch: f64,

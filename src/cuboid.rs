@@ -1,8 +1,6 @@
 use crate::sdf3d::Sdf3d;
 use crate::vec3::Vec3;
 
-use std::cmp::{min, max};
-
 pub struct Cuboid {
     half_size: Vec3,
     colours: [sdl2::pixels::Color; 6],
